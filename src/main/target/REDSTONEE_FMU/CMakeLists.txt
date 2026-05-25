@@ -1,0 +1,1 @@
+target_ch32h41x(REDSTONEE_FMU)
