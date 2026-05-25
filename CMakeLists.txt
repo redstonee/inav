@@ -12,7 +12,7 @@ set(TOOLS_DIR "${MAIN_DIR}/tools")
 
 option(SITL "SITL build for host system" OFF)
 
-set(TOOLCHAIN_OPTIONS none arm-none-eabi host)
+set(TOOLCHAIN_OPTIONS none arm-none-eabi riscv-wch host)
 if (SITL)
     if (CMAKE_HOST_APPLE)
         set(MACOSX TRUE)
@@ -91,6 +91,9 @@ endif()
 
 include(stm32)
 include(at32)
+if(TOOLCHAIN STREQUAL "riscv-wch")
+    include(ch32)
+endif()
 include(sitl)
 
 add_subdirectory(src)
