@@ -38,7 +38,7 @@
 #endif
 
 static adcDevice_t adcHardware[ADCDEV_COUNT] = {
-    { .ADCx = ADC1, .rccADC = RCC_APB2(ADC1), .rccDMA = RCC_AHB1(DMA2), .DMAy_Channelx = ADC1_DMA_STREAM, .dmaMuxid= DMAMUX_DMAREQ_ID_ADC1,.enabled = false, .usedChannelCount = 0 },
+    { .ADCx = ADC1, .rccADC = RCC_APB2(ADC1), .rccDMA = RCC_AHB1(DMA2), .DMAy_Channelx = ADC1_DMA_STREAM, .dmaMuxid= dma_re,.enabled = false, .usedChannelCount = 0 },
 };
 
 /* note these could be packed up for saving space */

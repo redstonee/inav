@@ -79,7 +79,7 @@ typedef enum
 #define U_ID_2 (*(uint32_t*)0x1fff7a18)
 
 #elif defined(CH32H4)
-#include "ch32h417.h"
+#include "ch32h417_conf.h"
 
 // Chip Unique ID on CH32H417
 #define U_ID_0 (*(uint32_t*)0x1fff7a10)

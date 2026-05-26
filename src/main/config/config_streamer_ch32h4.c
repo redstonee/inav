@@ -16,11 +16,13 @@
  */
 
 #include <string.h>
-#include "platform.h"
-#include "drivers/system.h"
-#include "config/config_streamer.h"
 
-#if defined(CH32H4) && !defined(CONFIG_IN_RAM) && !defined(CONFIG_IN_EXTERNAL_FLASH)
+#include "config/config_streamer.h"
+#include "drivers/system.h"
+#include "platform.h"
+
+#if defined(CH32H4) && !defined(CONFIG_IN_RAM) && \
+    !defined(CONFIG_IN_EXTERNAL_FLASH)
 
 /*
 Sector 0    0x08000000 - 0x08003FFF 16 Kbytes
@@ -36,59 +38,25 @@ Sector 9    0x080A0000 - 0x080BFFFF 128 Kbytes
 Sector 10   0x080C0000 - 0x080DFFFF 128 Kbytes
 Sector 11   0x080E0000 - 0x080FFFFF 128 Kbytes
 */
-#define FLASH_PAGE_SIZE     ((uint32_t)0x4000)
-static uint32_t getFLASHSectorForEEPROM(uint32_t address)
-{
-    if (address <= 0x08003FFF)
-        return FLASH_Sector_0;
-    if (address <= 0x08007FFF)
-        return FLASH_Sector_1;
-    if (address <= 0x0800BFFF)
-        return FLASH_Sector_2;
-    if (address <= 0x0800FFFF)
-        return FLASH_Sector_3;
-    if (address <= 0x0801FFFF)
-        return FLASH_Sector_4;
-    if (address <= 0x0803FFFF)
-        return FLASH_Sector_5;
-    if (address <= 0x0805FFFF)
-        return FLASH_Sector_6;
-    if (address <= 0x0807FFFF)
-        return FLASH_Sector_7;
-    if (address <= 0x0809FFFF)
-        return FLASH_Sector_8;
-    if (address <= 0x080DFFFF)
-        return FLASH_Sector_9;
-    if (address <= 0x080BFFFF)
-        return FLASH_Sector_10;
-    if (address <= 0x080FFFFF)
-        return FLASH_Sector_11;
-
-    // Not good
-    while (1) {
-        failureMode(FAILURE_FLASH_WRITE_FAILED);
-    }
-}
+#define FLASH_PAGE_SIZE ((uint32_t)8192)
 
 void config_streamer_impl_unlock(void)
 {
     FLASH_Unlock();
-    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_OPERR | FLASH_FLAG_WRPERR | FLASH_FLAG_PGAERR | FLASH_FLAG_PGPERR | FLASH_FLAG_PGSERR);
+    FLASH_ClearFlag(FLASH_FLAG_EOP | FLASH_FLAG_WRPRTERR | FLASH_FLAG_OPTERR);
 }
 
-void config_streamer_impl_lock(void)
-{
-    FLASH_Lock();
-}
+void config_streamer_impl_lock(void) { FLASH_Lock(); }
 
-int config_streamer_impl_write_word(config_streamer_t *c, config_streamer_buffer_align_type_t *buffer)
+int config_streamer_impl_write_word(config_streamer_t* c,
+                                    config_streamer_buffer_align_type_t* buffer)
 {
     if (c->err != 0) {
         return c->err;
     }
 
     if (c->address % FLASH_PAGE_SIZE == 0) {
-        const FLASH_Status status = FLASH_EraseSector(getFLASHSectorForEEPROM(c->address), VoltageRange_3);
+        const FLASH_Status status = FLASH_ErasePage(c->address);
         if (status != FLASH_COMPLETE) {
             return -1;
         }

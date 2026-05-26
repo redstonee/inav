@@ -33,12 +33,15 @@
 #include "adc_impl.h"
 
 #if !defined(ADC1_DMA_STREAM)
-#define ADC1_DMA_STREAM DMA2_Stream0
+#define ADC1_DMA_STREAM DMA2_Channel2
 #endif
 
+#define DMA_ADC1_REQUEST_ID 120
+#define DMA_ADC2_REQUEST_ID 121
+
 static adcDevice_t adcHardware[ADCDEV_COUNT] = {
-    { .ADCx = ADC1, .rccADC = RCC_APB2(ADC1), .rccDMA = RCC_AHB1(DMA2), .DMAy_Streamx = ADC1_DMA_STREAM, .channel = DMA_Channel_0, .enabled = false, .usedChannelCount = 0 },
-    //{ .ADCx = ADC2, .rccADC = RCC_APB2(ADC2), .rccDMA = RCC_AHB1(DMA2), .DMAy_Streamx = DMA2_Stream1, .channel = DMA_Channel_0, .enabled = false, .usedChannelCount = 0 }
+    { .ADCx = ADC1, .rccADC = RCC_HB2(ADC1), .rccDMA = RCC_HB(DMA2), .DMAy_Channelx = ADC1_DMA_STREAM, .dmaMuxid = DMA_ADC1_REQUEST_ID, .enabled = false, .usedChannelCount = 0 },
+    { .ADCx = ADC2, .rccADC = RCC_HB2(ADC2), .rccDMA = RCC_HB(DMA2), .DMAy_Channelx = ADC1_DMA_STREAM, .dmaMuxid = DMA_ADC2_REQUEST_ID, .enabled = false, .usedChannelCount = 0 },
 };
 
 /* note these could be packed up for saving space */
@@ -85,7 +88,6 @@ static void adcInstanceInit(ADCDevice adcDevice)
 {
     ADC_InitTypeDef ADC_InitStructure;
     DMA_InitTypeDef DMA_InitStructure;
-    ADC_CommonInitTypeDef ADC_CommonInitStructure;
 
     adcDevice_t * adc = &adcHardware[adcDevice];
 
@@ -110,14 +112,11 @@ static void adcInstanceInit(ADCDevice adcDevice)
 
     DMA_Cmd(adc->DMAy_Streamx, ENABLE);
 
-    ADC_CommonStructInit(&ADC_CommonInitStructure);
-    ADC_CommonInitStructure.ADC_Mode             = ADC_Mode_Independent;
-    ADC_CommonInitStructure.ADC_Prescaler        = ADC_Prescaler_Div8;
-    ADC_CommonInitStructure.ADC_DMAAccessMode    = ADC_DMAAccessMode_Disabled;
-    ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
-    ADC_CommonInit(&ADC_CommonInitStructure);
-
     ADC_StructInit(&ADC_InitStructure);
+    ADC_InitStructure.ADC_Mode             = ADC_Mode_Independent;
+    ADC_InitStructure.ADC_Prescaler        = ADC_Prescaler_Div8;
+    ADC_InitStructure.ADC_DMAAccessMode    = ADC_DMAAccessMode_Disabled;
+    ADC_InitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 
     ADC_InitStructure.ADC_ContinuousConvMode       = ENABLE;
     ADC_InitStructure.ADC_Resolution               = ADC_Resolution_12b;
@@ -138,12 +137,12 @@ static void adcInstanceInit(ADCDevice adcDevice)
         ADC_RegularChannelConfig(adc->ADCx, adcConfig[i].adcChannel, rank++, adcConfig[i].sampleTime);
     }
 
-    ADC_DMARequestAfterLastTransferCmd(adc->ADCx, ENABLE);
+    // ADC_DMARequestAfterLastTransferCmd(adc->ADCx, ENABLE);
 
     ADC_DMACmd(adc->ADCx, ENABLE);
     ADC_Cmd(adc->ADCx, ENABLE);
-
-    ADC_SoftwareStartConv(adc->ADCx);
+    
+    ADC_SoftwareStartConvCmd(adc->ADCx,ENABLE);
 }
 
 void adcHardwareInit(drv_adc_config_t *init)
@@ -158,7 +157,7 @@ void adcHardwareInit(drv_adc_config_t *init)
         adcDevice_t * adc = &adcHardware[adcConfig[i].adcDevice];
 
         IOInit(IOGetByTag(adcConfig[i].tag), OWNER_ADC, RESOURCE_ADC_CH1 + (i - ADC_CHN_1), 0);
-        IOConfigGPIO(IOGetByTag(adcConfig[i].tag), IO_CONFIG(GPIO_Mode_AN, 0, GPIO_OType_OD, GPIO_PuPd_NOPULL));
+        IOConfigGPIO(IOGetByTag(adcConfig[i].tag), IO_CONFIG(GPIO_Mode_AIN, GPIO_Speed_Very_High));
 
         adcConfig[i].adcChannel = adcChannelByTag(adcConfig[i].tag);
         adcConfig[i].dmaIndex = adc->usedChannelCount++;

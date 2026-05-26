@@ -71,6 +71,17 @@ const struct ioPortDef_s ioPortDefs[] = {
     { RCC_AHB1(GPIOG) },
     { RCC_AHB1(GPIOH) },
 };
+
+#elif defined(CH32H4)   
+const struct ioPortDef_s ioPortDefs[] = {
+    { RCC_HB2(IOPA) },
+    { RCC_HB2(IOPB) },
+    { RCC_HB2(IOPC) },
+    { RCC_HB2(IOPD) },
+    { RCC_HB2(IOPE) },
+    { RCC_HB2(IOPF) },
+};
+
 # endif
 
 ioRec_t* IO_Rec(IO_t io)
@@ -145,7 +156,7 @@ uint32_t IO_EXTI_Line(IO_t io)
     if (!io) {
         return 0;
     }
-#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
+#if defined(STM32F4) || defined(STM32F7) || defined(STM32H7) || defined(AT32F43x) || defined(CH32H4)
     return 1 << IO_GPIOPinIdx(io);
 #elif defined (SITL_BUILD)
     return 0;
@@ -163,6 +174,8 @@ bool IORead(IO_t io)
     return !! HAL_GPIO_ReadPin(IO_GPIO(io),IO_Pin(io));
 #elif defined(AT32F43x)
     return !! (IO_GPIO(io)->idt & IO_Pin(io));
+#elif defined(CH32H4)
+    return !! (IO_GPIO(io)->INDR & IO_Pin(io));
 #else
     return !! (IO_GPIO(io)->IDR & IO_Pin(io));
 #endif
@@ -187,6 +200,12 @@ void IOWrite(IO_t io, bool hi)
     }
 #elif defined(AT32F43x)
     IO_GPIO(io)->scr = IO_Pin(io) << (hi ? 0 : 16); 
+#elif defined(CH32H4)
+    if (hi) {
+        IO_GPIO(io)->BSHR = IO_Pin(io);   
+    } else {
+        IO_GPIO(io)->BCR = IO_Pin(io);   
+    }
 #else
     IO_GPIO(io)->BSRR = IO_Pin(io) << (hi ? 0 : 16);  
 #endif
@@ -203,6 +222,8 @@ void IOHi(IO_t io)
     IO_GPIO(io)->BSRRL = IO_Pin(io);
 #elif defined(AT32F43x)
     IO_GPIO(io)->scr = IO_Pin(io);
+#elif defined(CH32H4)
+    IO_GPIO(io)->BSHR = IO_Pin(io);
 #else
     IO_GPIO(io)->BSRR = IO_Pin(io);
 #endif
@@ -219,6 +240,8 @@ void IOLo(IO_t io)
     IO_GPIO(io)->BSRRH = IO_Pin(io);
 #elif defined(AT32F43x)
     IO_GPIO(io)->clr = IO_Pin(io);  
+#elif defined(CH32H4)
+    IO_GPIO(io)->BCR = IO_Pin(io);
 #else
     IO_GPIO(io)->BRR = IO_Pin(io);
 #endif
@@ -248,6 +271,12 @@ void IOToggle(IO_t io)
         IO_GPIO(io)->clr = mask;
     } else {
         IO_GPIO(io)->scr = mask;
+    }
+#elif defined(CH32H4)
+    if (IO_GPIO(io)->OUTDR & mask) {
+        IO_GPIO(io)->BCR = mask;
+    } else {
+        IO_GPIO(io)->BSHR = mask;
     }
 #else
     if (IO_GPIO(io)->ODR & mask)
@@ -367,6 +396,34 @@ void IOConfigGPIOAF(IO_t io, ioConfig_t cfg, uint8_t af)
     };
     GPIO_Init(IO_GPIO(io), &init);
 }
+
+#elif defined(CH32H4)
+
+void IOConfigGPIO(IO_t io, ioConfig_t cfg)
+{
+    if (!io) {
+        return;
+    }
+    const rccPeriphTag_t rcc = ioPortDefs[IO_GPIOPortIdx(io)].rcc;
+    RCC_ClockCmd(rcc, ENABLE);
+
+    GPIO_InitTypeDef init = {
+        .GPIO_Pin = IO_Pin(io),
+        .GPIO_Mode = cfg & 0xfc,
+        .GPIO_Speed = cfg & 0x03,
+    };
+    GPIO_Init(IO_GPIO(io), &init);
+}
+
+void IOConfigGPIOAF(IO_t io, ioConfig_t cfg, uint8_t af)
+{
+    if (!io) {
+        return;
+    }
+    IOConfigGPIO(io, cfg); 
+    GPIO_PinAFConfig(IO_GPIO(io), IO_GPIO_PinSource(io), af);
+}
+
 #elif defined(AT32F43x)
 
 void IOConfigGPIO(IO_t io, ioConfig_t cfg)
