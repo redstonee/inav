@@ -17,10 +17,43 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #if defined(UNIT_TEST) || defined(SITL_BUILD)
 static inline void __set_BASEPRI(uint32_t basePri) {(void)basePri;}
 static inline void __set_BASEPRI_MAX(uint32_t basePri) {(void)basePri;}
-#endif // UNIT_TEST
+#elif defined(__riscv)
+#define __NVIC_PRIO_BITS 4
+/*
+ * RISC-V doesn't have an ARM-like BASEPRI priority mask.  Provide
+ * simple enable/disable interrupt helpers using the MSTATUS MIE bit.
+ *
+ * We map the minimal BASEPRI API used by ATOMIC_BLOCK to:
+ *  - __get_BASEPRI(): returns 0 if interrupts were enabled, 1 if disabled
+ *  - __set_BASEPRI(val): if val!=0 disable interrupts, else enable
+ *  - __set_BASEPRI_MAX(...): disable interrupts (ignore priority arg)
+ */
+#define __RISCV_MSTATUS_MIE (1UL << 3)
+static inline uint8_t __get_BASEPRI(void)
+{
+    unsigned long mstatus;
+    asm volatile("csrr %0, mstatus" : "=r" (mstatus) :: "memory");
+    return (mstatus & __RISCV_MSTATUS_MIE) ? 0 : 1;
+}
+static inline void __set_BASEPRI(uint32_t basePri)
+{
+    if (basePri) {
+        asm volatile("csrc mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
+    } else {
+        asm volatile("csrs mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
+    }
+}
+static inline void __set_BASEPRI_MAX(uint32_t basePri)
+{
+    (void)basePri;
+    asm volatile("csrc mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
+}
+#endif // UNIT_TEST / __riscv
 
 // cleanup BASEPRI restore function, with global memory barrier
 static inline void __basepriRestoreMem(uint8_t *val)

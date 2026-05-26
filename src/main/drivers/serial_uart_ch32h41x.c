@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "ch32h417.h"
 #include "platform.h"
 
 #include "drivers/time.h"
@@ -42,7 +43,8 @@ typedef struct uartDevice_s {
     uint32_t rcc_ahb1;
     rccPeriphTag_t rcc_apb2;
     rccPeriphTag_t rcc_apb1;
-    uint8_t af;
+    uint8_t rx_af;
+    uint8_t tx_af;
     uint8_t irq;
     uint32_t irqPriority;
 } uartDevice_t;
@@ -54,11 +56,12 @@ static uartDevice_t uart1 =
     .dev = USART1,
     .rx = IO_TAG(UART1_RX_PIN),
     .tx = IO_TAG(UART1_TX_PIN),
-    .af = GPIO_AF_USART1,
+    .rx_af = UART1_AF,
+    .tx_af = UART1_AF,
 #ifdef UART1_AHB1_PERIPHERALS
     .rcc_ahb1 = UART1_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb2 = RCC_APB2(USART1),
+    .rcc_apb2 = RCC_HB2(USART1),
     .irq = USART1_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
@@ -70,11 +73,12 @@ static uartDevice_t uart2 =
     .dev = USART2,
     .rx = IO_TAG(UART2_RX_PIN),
     .tx = IO_TAG(UART2_TX_PIN),
-    .af = GPIO_AF_USART2,
+    .rx_af = UART2_AF,
+    .tx_af = UART2_AF,
 #ifdef UART2_AHB1_PERIPHERALS
     .rcc_ahb1 = UART2_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb1 = RCC_APB1(USART2),
+    .rcc_apb1 = RCC_HB1(USART2),
     .irq = USART2_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
@@ -86,11 +90,12 @@ static uartDevice_t uart3 =
     .dev = USART3,
     .rx = IO_TAG(UART3_RX_PIN),
     .tx = IO_TAG(UART3_TX_PIN),
-    .af = GPIO_AF_USART3,
+    .rx_af = UART3_AF,
+    .tx_af = UART3_AF,
 #ifdef UART3_AHB1_PERIPHERALS
     .rcc_ahb1 = UART3_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb1 = RCC_APB1(USART3),
+    .rcc_apb1 = RCC_HB1(USART3),
     .irq = USART3_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
@@ -99,15 +104,16 @@ static uartDevice_t uart3 =
 #ifdef USE_UART4
 static uartDevice_t uart4 =
 {
-    .dev = UART4,
+    .dev = USART4,
     .rx = IO_TAG(UART4_RX_PIN),
     .tx = IO_TAG(UART4_TX_PIN),
-    .af = GPIO_AF_UART4,
+    .rx_af = UART4_AF,
+    .tx_af = UART4_AF,
 #ifdef UART4_AHB1_PERIPHERALS
     .rcc_ahb1 = UART4_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb1 = RCC_APB1(UART4),
-    .irq = UART4_IRQn,
+    .rcc_apb1 = RCC_HB1(USART4),
+    .irq = USART4_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
@@ -115,15 +121,16 @@ static uartDevice_t uart4 =
 #ifdef USE_UART5
 static uartDevice_t uart5 =
 {
-    .dev = UART5,
+    .dev = USART5,
     .rx = IO_TAG(UART5_RX_PIN),
     .tx = IO_TAG(UART5_TX_PIN),
-    .af = GPIO_AF_UART5,
+    .rx_af = UART5_AF,
+    .tx_af = UART5_AF,
 #ifdef UART5_AHB1_PERIPHERALS
     .rcc_ahb1 = UART5_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb1 = RCC_APB1(UART5),
-    .irq = UART5_IRQn,
+    .rcc_apb1 = RCC_HB1(USART5),
+    .irq = USART5_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
@@ -134,11 +141,12 @@ static uartDevice_t uart6 =
     .dev = USART6,
     .rx = IO_TAG(UART6_RX_PIN),
     .tx = IO_TAG(UART6_TX_PIN),
-    .af = GPIO_AF_USART6,
+    .rx_af = UART6_AF,
+    .tx_af = UART6_AF,
 #ifdef UART6_AHB1_PERIPHERALS
     .rcc_ahb1 = UART6_AHB1_PERIPHERALS,
 #endif
-    .rcc_apb2 = RCC_APB2(USART6),
+    .rcc_apb2 = RCC_HB1(USART6),
     .irq = USART6_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
@@ -147,12 +155,13 @@ static uartDevice_t uart6 =
 #ifdef USE_UART7
 static uartDevice_t uart7 =
 {
-    .dev = UART7,
+    .dev = USART7,
     .rx = IO_TAG(UART7_RX_PIN),
     .tx = IO_TAG(UART7_TX_PIN),
-    .af = GPIO_AF_UART7,
-    .rcc_apb1 = RCC_APB1(UART7),
-    .irq = UART7_IRQn,
+    .rx_af = UART7_AF,
+    .tx_af = UART7_AF,
+    .rcc_apb1 = RCC_HB1(USART7),
+    .irq = USART7_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif
@@ -160,12 +169,13 @@ static uartDevice_t uart7 =
 #ifdef USE_UART8
 static uartDevice_t uart8 =
 {
-    .dev = UART8,
+    .dev = USART8,
     .rx = IO_TAG(UART8_RX_PIN),
     .tx = IO_TAG(UART8_TX_PIN),
-    .af = GPIO_AF_UART8,
-    .rcc_apb1 = RCC_APB1(UART8),
-    .irq = UART8_IRQn,
+    .rx_af = UART8_AF,
+    .tx_af = UART8_AF,
+    .rcc_apb1 = RCC_HB1(USART8),
+    .irq = USART8_IRQn,
     .irqPriority = NVIC_PRIO_SERIALUART
 };
 #endif

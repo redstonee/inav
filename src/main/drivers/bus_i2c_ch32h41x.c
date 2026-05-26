@@ -40,10 +40,8 @@ static void i2cUnstick(IO_t scl, IO_t sda);
 
 #define GPIO_AF_I2C GPIO_AF_I2C1
 
-#ifdef STM32F4
-
 #if defined(USE_I2C_PULLUP)
-#define IOCFG_I2C IO_CONFIG(GPIO_Mode_AF, GPIO_Speed_50MHz, GPIO_OType_OD, GPIO_PuPd_UP)
+#define IOCFG_I2C IOCFG_AF_OD_UP
 #else
 #define IOCFG_I2C IOCFG_AF_OD
 #endif
@@ -55,33 +53,18 @@ static void i2cUnstick(IO_t scl, IO_t sda);
 #define I2C1_SDA PB9
 #endif
 
-#else
-
-#ifndef I2C1_SCL
-#define I2C1_SCL PB6
-#endif
-#ifndef I2C1_SDA
-#define I2C1_SDA PB7
-#endif
-#define IOCFG_I2C   IO_CONFIG(GPIO_Mode_AF_OD, GPIO_Speed_50MHz)
-
-#endif
-
 #ifndef I2C2_SCL
 #define I2C2_SCL PB10
 #endif
-
 #ifndef I2C2_SDA
 #define I2C2_SDA PB11
 #endif
 
-#ifdef STM32F4
 #ifndef I2C3_SCL
 #define I2C3_SCL PA8
 #endif
 #ifndef I2C3_SDA
-#define I2C3_SDA PB4
-#endif
+#define I2C3_SDA PC9
 #endif
 
 typedef enum {
@@ -136,10 +119,10 @@ typedef struct i2cBusState_s {
 static volatile uint16_t i2cErrorCount = 0;
 
 static i2cDevice_t i2cHardwareMap[] = {
-    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_APB1(I2C1), .speed = I2C_SPEED_400KHZ },
-    { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_APB1(I2C2), .speed = I2C_SPEED_400KHZ },
-#ifdef STM32F4
-    { .dev = I2C3, .scl = IO_TAG(I2C3_SCL), .sda = IO_TAG(I2C3_SDA), .rcc = RCC_APB1(I2C3), .speed = I2C_SPEED_400KHZ }
+    { .dev = I2C1, .scl = IO_TAG(I2C1_SCL), .sda = IO_TAG(I2C1_SDA), .rcc = RCC_HB1(I2C1), .speed = I2C_SPEED_400KHZ },
+    { .dev = I2C2, .scl = IO_TAG(I2C2_SCL), .sda = IO_TAG(I2C2_SDA), .rcc = RCC_HB1(I2C2), .speed = I2C_SPEED_400KHZ },
+#ifdef CH32H4
+    { .dev = I2C3, .scl = IO_TAG(I2C3_SCL), .sda = IO_TAG(I2C3_SDA), .rcc = RCC_HB1(I2C3), .speed = I2C_SPEED_400KHZ }
 #endif
 };
 
@@ -170,7 +153,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             // Wait for stop bit to clear
             // RM0090: When the STOP, START or PEC bit is set, the software must not perform any write access
             // to I2C_CR1 before this bit is cleared by hardware. Otherwise there is a risk of setting a second STOP, START or PEC request.
-            if ((I2Cx->CR1 & I2C_CR1_STOP) == 0) {
+            if ((I2Cx->CTLR1 & I2C_CTLR1_STOP) == 0) {
                 i2cBusState->state = I2C_STATE_STOPPED;
             }
             else if ((currentTicksUs - i2cBusState->timeout) >= I2C_TIMEOUT) {
@@ -191,7 +174,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_STARTING_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) {
                 if (i2cBusState->rw == I2C_TXN_READ) {
                     // Special case - no register address
                     if (i2cBusState->reg == 0xFF && i2cBusState->allowRawAccess) {
@@ -217,7 +200,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_R_ADDR_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
                 i2cBusState->state = I2C_STATE_R_REGISTER;
             }
             else if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) != RESET) {
@@ -235,7 +218,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_R_REGISTER_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
                 if (i2cBusState->len == 0) {
                     I2C_GenerateSTOP(I2Cx, ENABLE);
                     i2cBusState->timeout = currentTicksUs;
@@ -260,7 +243,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_R_RESTARTING_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) {
                 i2cBusState->state = I2C_STATE_R_RESTART_ADDR;
             }
             else if ((currentTicksUs - i2cBusState->timeout) >= I2C_TIMEOUT) {
@@ -275,13 +258,13 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_R_RESTART_ADDR_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED)) {
                 if (i2cBusState->len == 1) {
                     // This TXN is 1-byte, disable ACK and generate stop early
                     I2C_AcknowledgeConfig(I2Cx, DISABLE);
 
                     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-                        (void) I2Cx->SR2;
+                        (void) I2Cx->STAR2;
                         I2C_GenerateSTOP(I2Cx, ENABLE);
                     }
 
@@ -291,14 +274,14 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
                     // 2-byte transaction, disable ACK
                     I2C_NACKPositionConfig(I2Cx, I2C_NACKPosition_Next);
                     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
-                        (void) I2Cx->SR2;
+                        (void) I2Cx->STAR2;
                         I2C_AcknowledgeConfig(I2Cx, DISABLE);
                     }
 
                     i2cBusState->state = I2C_STATE_R_TRANSFER_EQ2;
                 }
                 else {
-                    (void) I2Cx->SR2;   // Clear ADDR flag
+                    (void) I2Cx->STAR2;   // Clear ADDR flag
                     i2cBusState->state = I2C_STATE_R_TRANSFER_GE2;
                 }
 
@@ -335,7 +318,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
                 }
 
                 *i2cBusState->buf++ = I2C_ReceiveData(I2Cx);
-                i2cBusState->len =- 2;
+                i2cBusState->len -= 2;
 
                 // This was the last successful byte
                 i2cBusState->txnOk = true;
@@ -396,7 +379,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_W_ADDR_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
                 // Special no-address case, skip address byte transmission
                 if (i2cBusState->reg == 0xFF && i2cBusState->allowRawAccess) {
                     i2cBusState->state = I2C_STATE_W_TRANSFER;
@@ -420,7 +403,7 @@ static void i2cStateMachine(i2cBusState_t * i2cBusState, const timeUs_t currentT
             FALLTHROUGH;
 
         case I2C_STATE_W_TRANSFER_WAIT:
-            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED) != ERROR) {
+            if (I2C_CheckEvent(I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) {
                 i2cBusState->state = I2C_STATE_W_TRANSFER;
             }
             else if (I2C_GetFlagStatus(I2Cx, I2C_FLAG_AF) != RESET) {
