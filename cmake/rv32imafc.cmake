@@ -5,6 +5,7 @@ set(RV32IMAFC_COMMON_OPTIONS
     -msave-restore
     -fsigned-char
     -mcmodel=medany
+    -Wno-comment
 )
 
 set(RV32IMAFC_COMPILE_OPTIONS
