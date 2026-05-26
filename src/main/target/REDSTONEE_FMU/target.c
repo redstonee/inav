@@ -27,16 +27,12 @@
 #include "drivers/sensor.h"
 
 timerHardware_t timerHardware[] = {
-    DEF_TIM(TIM1,  CH4, PE14,  TIM_USE_OUTPUT_AUTO, 0, 0), // S1
-    DEF_TIM(TIM1,  CH3, PE13,  TIM_USE_OUTPUT_AUTO, 0, 1), // S2
-    DEF_TIM(TIM1,  CH2, PE11,  TIM_USE_OUTPUT_AUTO, 0, 2), // S3
-    DEF_TIM(TIM1,  CH1, PE9,   TIM_USE_OUTPUT_AUTO, 0, 3), // S4
-    DEF_TIM(TIM3,  CH4, PB1,   TIM_USE_OUTPUT_AUTO, 0, 4), // S5
-    DEF_TIM(TIM3,  CH3, PB0,   TIM_USE_OUTPUT_AUTO, 0, 5), // S6
-    DEF_TIM(TIM4,  CH1, PD12,  TIM_USE_OUTPUT_AUTO, 0, 6), // S7
-    DEF_TIM(TIM4,  CH2, PD13,  TIM_USE_OUTPUT_AUTO, 0, 7), // S8
-    DEF_TIM(TIM4,  CH3, PD14,  TIM_USE_OUTPUT_AUTO, 0, 0), // S9
-    DEF_TIM(TIM4,  CH4, PD15,  TIM_USE_OUTPUT_AUTO, 0, 0), // S10 DMA_NONE
+    DEF_TIM(TIM1,  CH3,  PA10,  TIM_USE_OUTPUT_AUTO, 0, 1), // S1
+    DEF_TIM(TIM1,  CH2,  PA9,  TIM_USE_OUTPUT_AUTO, 0, 1), // S2
+    DEF_TIM(TIM3,  CH4,  PC9,  TIM_USE_OUTPUT_AUTO, 0, 1), // S3
+    DEF_TIM(TIM3,  CH1,  PC6,  TIM_USE_OUTPUT_AUTO, 0, 0), // S4
+    DEF_TIM(TIM3,  CH2,  PC7,  TIM_USE_OUTPUT_AUTO, 0, 0), // S5
+    DEF_TIM(TIM3,  CH3,  PC8,  TIM_USE_OUTPUT_AUTO, 0, 0), // S6
 };
 
 const int timerHardwareCount = sizeof(timerHardware) / sizeof(timerHardware[0]);

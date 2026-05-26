@@ -29,107 +29,113 @@
 // *************** SPI: Gyro & ACC & OSD **********************
 #define USE_SPI
 #define USE_SPI_DEVICE_1
-#define USE_SPI_DEVICE_2
 
 #define SPI1_SCK_PIN        PA5
 #define SPI1_MISO_PIN   	PA6
 #define SPI1_MOSI_PIN   	PA7
-
-#define SPI2_SCK_PIN        PD3
-#define SPI2_MISO_PIN   	PC2
-#define SPI2_MOSI_PIN   	PC3
+#define SPI1_AF_SCK   	    GPIO_AF5
+#define SPI1_AF_MISO   	    GPIO_AF5
+#define SPI1_AF_MOSI   	    GPIO_AF5
 
 #define USE_IMU_BMI088
 #define IMU_BMI088_ALIGN        CW270_DEG
-#define BMI088_SPI_BUS          BUS_SPI2
-#define BMI088_GYRO_CS_PIN      PD5
-#define BMI088_ACC_CS_PIN       PD4
-
-#define USE_MAX7456
-#define MAX7456_SPI_BUS         BUS_SPI1
-#define MAX7456_CS_PIN          PB12
+#define BMI088_SPI_BUS          BUS_SPI1
+#define BMI088_GYRO_CS_PIN      PA4
+#define BMI088_ACC_CS_PIN       PC4
 
 // *************** UART *****************************
-#define USE_VCP
-
-#define USE_UART1
-#define UART1_RX_PIN            PA10
-#define UART1_TX_PIN            PA9
+// #define USE_VCP
 
 #define USE_UART2
 #define UART2_RX_PIN            PA3
-#define UART2_TX_PIN            PA2
+#define UART2_AF_RX             GPIO_AF7
 
 #define USE_UART3
-#define UART3_RX_PIN            PD9
-#define UART3_TX_PIN            PD8
+#define UART3_RX_PIN            PC11
+#define UART3_TX_PIN            PC10
+#define UART3_AF_RX             GPIO_AF7
+#define UART3_AF_TX             GPIO_AF7
 
 #define USE_UART4
-#define UART4_RX_PIN            PA1
-#define UART4_TX_PIN            PA0
+#define UART4_RX_PIN            PF3
+#define UART4_TX_PIN            PF4
+#define UART4_AF_RX             GPIO_AF7
+#define UART4_AF_TX             GPIO_AF7
+#define INVERTER_PIN_UART4_RX   PE3
+
+#define USE_UART5
+#define UART5_RX_PIN            PF5
+#define UART5_TX_PIN            PE0 
+#define UART5_AF_RX             GPIO_AF4
+#define UART5_AF_TX             GPIO_AF4
 
 #define USE_UART6
-#define UART6_RX_PIN            PC7
-#define UART6_TX_PIN            PC6 
-#define INVERTER_PIN_UART6_RX   PD0
+#define UART6_RX_PIN            PA1
+#define UART6_TX_PIN            PA0 
+#define UART6_AF_RX             GPIO_AF8
+#define UART6_AF_TX             GPIO_AF8
 
 #define USE_UART7
-#define UART7_RX_PIN            PE7
+#define UART7_RX_PIN            PB12
+#define UART7_TX_PIN            PB13
+#define UART7_AF_RX             GPIO_AF14
+#define UART7_AF_TX             GPIO_AF14
 
-#define USE_UART8
-#define UART8_RX_PIN            PE0
-#define UART8_TX_PIN            PE1
-
-#define SERIAL_PORT_COUNT       8      //VCP, UART1, UART2, UART3, UART4, UART6, UART7, UART8
+#define SERIAL_PORT_COUNT       6
 
 #define DEFAULT_RX_TYPE         RX_TYPE_SERIAL
 #define SERIALRX_PROVIDER       SERIALRX_SBUS
-#define SERIALRX_UART           SERIAL_PORT_USART6
+#define SERIALRX_UART           SERIAL_PORT_USART4
 
-// *************** I2C: BARO & MAG ****************************
+// *************** I2C: BARO & MAG & RGB ****************************
 #define USE_I2C
 #define USE_I2C_DEVICE_1
-#define USE_I2C_DEVICE_2
+#define USE_I2C_DEVICE_3
 #define I2C1_SCL                PB6
 #define I2C1_SDA                PB7
-#define I2C2_SCL                PB10
-#define I2C2_SDA                PB11
+#define I2C1_AF_SDA             GPIO_AF4
+#define I2C1_AF_SCL             GPIO_AF4
+
+#define I2C3_SCL                PA14
+#define I2C3_SDA                PA13
+#define I2C3_AF_SDA             GPIO_AF7 
+#define I2C3_AF_SCL             GPIO_AF7
 
 #define USE_BARO
-#define USE_BARO_DPS310
-#define BARO_I2C_BUS            BUS_I2C2
+#define USE_BARO_SPL06
+#define BARO_I2C_BUS            BUS_I2C3
 
 #define USE_MAG
 
-#ifdef MICOAIR743_EXTMAG
+#ifdef REDSTONEE_FMU_EXTMAG
 // External compass
 #define MAG_I2C_BUS             BUS_I2C1
 #else
 // Onboard compass
-#define MAG_I2C_BUS             BUS_I2C2
+#define MAG_I2C_BUS             BUS_I2C3
 #endif
 #define USE_MAG_ALL
 
 // *************** ENABLE OPTICAL FLOW & RANGEFINDER *****************************
-#define USE_RANGEFINDER
-#define USE_RANGEFINDER_MSP
-#define USE_OPFLOW
-#define USE_OPFLOW_MSP
+// #define USE_RANGEFINDER
+// #define USE_RANGEFINDER_MSP
+// #define USE_OPFLOW
+// #define USE_OPFLOW_MSP
 
 // *************** SDIO SD BLACKBOX*******************
-#define USE_SDCARD
-#define USE_SDCARD_SDIO
-#define SDCARD_SDIO_DEVICE      SDIODEV_1
-#define SDCARD_SDIO_4BIT
-#define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
+// #define USE_SDCARD
+// #define USE_SDCARD_SDIO
+// #define SDCARD_SDIO_DEVICE      SDIODEV_1
+// #define SDCARD_SDIO_4BIT
+// #define ENABLE_BLACKBOX_LOGGING_ON_SDCARD_BY_DEFAULT
 
 // *************** ADC *****************************
 #define USE_ADC
 #define ADC_INSTANCE                ADC1
-#define ADC_CHANNEL_1_PIN           PC0
-#define ADC_CHANNEL_2_PIN           PC1
-#define VBAT_ADC_CHANNEL            ADC_CHN_1
-#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_2
+#define ADC_CHANNEL_8_PIN           PB0
+#define ADC_CHANNEL_9_PIN           PB1
+#define VBAT_ADC_CHANNEL            ADC_CHN_9
+#define CURRENT_METER_ADC_CHANNEL   ADC_CHN_8
 #define VBAT_SCALE_DEFAULT          2121
 #define CURRENT_METER_SCALE         402
 
@@ -145,4 +151,4 @@
 #define TARGET_IO_PORTD 0xffff
 #define TARGET_IO_PORTE 0xffff
 
-#define MAX_PWM_OUTPUT_PORTS       10
+#define MAX_PWM_OUTPUT_PORTS       6

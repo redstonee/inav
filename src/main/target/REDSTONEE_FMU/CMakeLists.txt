@@ -1,1 +1,2 @@
 target_ch32h41x(REDSTONEE_FMU)
+target_ch32h41x(REDSTONEE_FMU_EXTMAG)

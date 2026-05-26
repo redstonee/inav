@@ -26,9 +26,8 @@
 
 void targetConfiguration(void)
 {
-    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_MSP;
-    serialConfigMutable()->portConfigs[1].msp_baudrateIndex = BAUD_57600;    
-    serialConfigMutable()->portConfigs[2].functionMask = FUNCTION_MSP_OSD;
-    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_GPS;
-    serialConfigMutable()->portConfigs[6].functionMask = FUNCTION_ESCSERIAL;
+    serialConfigMutable()->portConfigs[0].functionMask = FUNCTION_ESCSERIAL;
+    serialConfigMutable()->portConfigs[1].functionMask = FUNCTION_GPS;
+    serialConfigMutable()->portConfigs[3].functionMask = FUNCTION_MSP;
+    serialConfigMutable()->portConfigs[3].msp_baudrateIndex = BAUD_57600;    
 }
