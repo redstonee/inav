@@ -451,9 +451,6 @@ void gpsInit(void)
     gpsStats.errors = 0;
     gpsStats.timeouts = 0;
 
-    // Initialize hardware version to unknown (for MSP_GPSSTATISTICS)
-    gpsState.hwVersion = 0;
-
     // Reset solution, timeout and prepare to start
     gpsResetSolution(&gpsSolDRV);
     gpsResetSolution(&gpsSol);
@@ -644,6 +641,19 @@ bool isGPSHeadingValid(void)
         || STATE(GPS_ESTIMATED_FIX)
 #endif        
         ) && gpsSol.groundSpeed >= 300;
+}
+
+#else
+
+#include "io/gps.h"
+
+gpsSolutionData_t gpsSolDRV;
+gpsSolutionData_t gpsSol;
+gpsStatistics_t gpsStats;
+
+bool isGPSHeadingValid(void)
+{
+    return false;
 }
 
 #endif

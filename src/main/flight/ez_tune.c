@@ -22,6 +22,10 @@
  * along with this program. If not, see http://www.gnu.org/licenses/.
  */
 
+#include "platform.h"
+
+#ifdef USE_EZ_TUNE
+
 #include "fc/config.h"
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
@@ -148,3 +152,5 @@ void ezTuneUpdate(void) {
 
     }
 }
+
+#endif

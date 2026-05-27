@@ -29,7 +29,11 @@
 #define ONESHOT_FEATURE_CHANGED_DELAY_ON_BOOT_MS 1500
 #define MAX_NAME_LENGTH 16
 
+#ifdef CH32H417
+#define TASK_GYRO_LOOPTIME 2000 // CH32 bring-up target: keep scheduler headroom for MSP/USB.
+#else
 #define TASK_GYRO_LOOPTIME 250 // Task gyro always runs at 4kHz
+#endif
 
 typedef enum {
     FEATURE_THR_VBAT_COMP = 1 << 0,

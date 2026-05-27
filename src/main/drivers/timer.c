@@ -182,7 +182,9 @@ void timerChConfigIC(TCH_t * tch, bool polarityRising, unsigned inputFilterSampl
 
 uint16_t timerGetPeriod(TCH_t * tch)
 {
-#if defined(AT32F43x)
+#if defined(CH32H417)
+    return tch->timHw->tim->ATRLR;
+#elif defined(AT32F43x)
     return tch->timHw->tim->pr;     //tmr pr registe
 #else
     return tch->timHw->tim->ARR;

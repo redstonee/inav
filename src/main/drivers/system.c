@@ -43,7 +43,11 @@ void cycleCounterInit(void)
 {
     extern uint32_t usTicks; // From drivers/time.h
 
-    #if defined(AT32F43x)
+    #if defined(CH32H4)
+        SystemAndCoreClockUpdate();
+        usTicks = SystemCoreClock / 1000000;
+        return;
+    #elif defined(AT32F43x)
         //crm_clocks_freq_type clocks;
         //crm_clocks_freq_get(&clocks); 
         //usTicks = clocks.sclk_freq / 1000000;
@@ -59,6 +63,7 @@ void cycleCounterInit(void)
         #endif
      #endif
      
+#if !defined(CH32H417)
     // Enable DWT for precision time measurement
     CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 
@@ -73,10 +78,17 @@ void cycleCounterInit(void)
 
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+#endif
 }
 
 static inline void systemDisableAllIRQs(void)
 {
+#if defined(CH32H417)
+    for (int x = 0; x < 8; x++) {
+        NVIC->IRER[x] = 0xFFFFFFFF;
+        NVIC->IPRR[x] = 0xFFFFFFFF;
+    }
+#else
     // We access CMSIS NVIC registers directly here
     for (int x = 0; x < 8; x++) {
         // Mask all IRQs controlled by a ICERx
@@ -84,6 +96,7 @@ static inline void systemDisableAllIRQs(void)
         // Clear all pending IRQs controlled by a ICPRx
         NVIC->ICPR[x] = 0xFFFFFFFF;
     }
+#endif
 }
 
 void systemReset(void)
@@ -124,7 +137,10 @@ void checkForBootLoaderRequest(void)
     // Clear the reset reason before jumping
     persistentObjectWrite(PERSISTENT_OBJECT_RESET_REASON, RESET_NONE);
 
-#if defined(STM32H7)
+#if defined(CH32H417)
+    systemReset();
+    while (1);
+#elif defined(STM32H7)
 
     // Enable SYSCFG clock (required for bootloader)
     __HAL_RCC_SYSCFG_CLK_ENABLE();

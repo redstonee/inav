@@ -238,7 +238,10 @@ static uint16_t getValueOffset(const setting_t *value)
     case CONTROL_VALUE:
         return value->offset + sizeof(controlConfig_t) * getConfigProfile();
 	case EZ_TUNE_VALUE:
+#ifdef USE_EZ_TUNE
 		return value->offset + sizeof(ezTuneSettings_t) * getConfigProfile();
+#endif
+        break;
     case BATTERY_CONFIG_VALUE:
         return value->offset + sizeof(batteryProfile_t) * getConfigBatteryProfile();
 	case MIXER_CONFIG_VALUE:

@@ -1,160 +1,211 @@
-# INAV - navigation capable flight controller
+# CH32H415REU6 INAV 飞控移植说明
 
-# F411 PSA
+这是基于 `iNavFlight/inav` 移植到 `CH32H415REU6` 的飞控固件工程。当前工程用于你的 CH32_UAV 飞控板，芯片按 `CH32H415REU6` 处理。
 
-> INAV no longer accepts targets based on STM32 F411 MCU.
+## 当前状态
 
-> INAV 7 was the last INAV official release available for F411 based flight controllers. INAV 8 is not officially available for F411 boards and the team has not tested either. Issues that can't be reproduced on other MCUs may not be fixed and the targets for F411 targets may eventually be completelly removed from future releases.
+- 目标芯片：`CH32H415REU6`
+- INAV 版本显示：`9.0.1 [CH32H415REU6]`
+- USB CDC：已验证，Windows 下为 `COM7`
+- WCH-Link 串口：`COM6`，这是调试器串口，不是 INAV 连接口
+- MSP 通信：已验证正常
+- hardfloat 固件：已验证启动正常
+- CPU 负载：hardfloat 版本下 MSP 读取约 `8%`
+- 当前不要接电池和桨，调试阶段只用 USB/WCH-Link
 
-# ICM426xx IMUs PSA
+## 目录位置
 
-> The filtering settings for the ICM426xx has changed to match what is used by Ardupilot and Betaflight in INAV 7.1. When upgrading from older versions you may need to recalibrate the Accelerometer and if you are not using INAV's default tune you may also want to check if the tune is still good.
+工程源码：
 
-# M7, M6 and older UBLOX GPS units PSA
+```text
+C:\Users\30296\Desktop\ch32\inav_ch32h415reu6_port
+```
 
-> INAV 8.0 will mark those GPS as deprecated and INAV 9.0.0 will require UBLOX units with Protocol version 15.00 or newer. This means that you need a GPS unit based on UBLOX M8 or newer.
+沁恒官方资料和源码：
 
-> If you want to check the protocol version of your unit, it is displayed in INAV's 7.0.0+ status cli command.
-> INAV 8.0.0 will warn you if your GPS is too old.
-> ```GPS: HW Version: Unknown Proto: 0.00 Baud: 115200 (UBLOX Proto >= 15.0 required)```
+```text
+C:\Users\30296\Desktop\ch32\CH32H415_WCH_Official
+```
 
+原理图资料：
 
-> M8, M9 and M10 GPS are the most common units in use today, are readly available and have similar capabilities.
->Mantaining and testing GPS changes across this many UBLOX versions is a challenge and takes a lot of time. Removing the support for older devices will simplify code.
+```text
+C:\Users\30296\Desktop\ch32\原理图
+```
 
-![INAV](http://static.rcgroups.net/forums/attachments/6/1/0/3/7/6/a9088858-102-inav.png)
+立创 EDA 工程参考资料：
 
-# PosHold, Navigation and RTH without compass PSA
+```text
+C:\Users\30296\Desktop\ch32\_eda_CH32_UAV_latest
+```
 
-Attention all drone pilots and enthusiasts,
+## 推荐烧录固件
 
-Are you ready to take your flights to new heights with INAV 7.1? We've got some important information to share with you.
+当前推荐使用已经验证的 hardfloat 固件：
 
-INAV 7.1 brings an exciting update to navigation capabilities. Now, you can soar through the skies, navigate waypoints, and even return to home without relying on a compass. Yes, you heard that right! But before you launch into the air, there's something crucial to consider.
+```text
+C:\CH32_FLASH\CH32H415_hardfloat_verified_20260526\CH32H415REU6_hardfloat_verified_dual.bin
+```
 
-While INAV 7.1 may not require a compass for basic navigation functions, we strongly advise you to install one for optimal flight performance. Here's why:
+同目录还有 hex：
 
-🛰️ Better Flight Precision: A compass provides essential data for accurate navigation, ensuring smoother and more precise flight paths.
+```text
+C:\CH32_FLASH\CH32H415_hardfloat_verified_20260526\CH32H415REU6_hardfloat_verified_dual.hex
+```
 
-🌐 Enhanced Reliability: With a compass onboard, your drone can maintain stability even in challenging environments, low speeds and strong wind.
+如果 hardfloat 版本需要回退，可用已知能通信的软浮点版本：
 
-🚀 Minimize Risks: Although INAV 7.1 can get you where you need to go without a compass, flying without one may result in a bumpier ride and increased risk of drift or inaccurate positioning.
+```text
+C:\CH32_FLASH\CH32H415_msp_scheduler_nostarve_20260526\CH32H415REU6_msp_scheduler_nostarve_dual.bin
+```
 
-Remember, safety and efficiency are paramount when operating drones. By installing a compass, you're not just enhancing your flight experience, but also prioritizing safety for yourself and those around you.
+## WCH-LinkUtility 烧录方法
 
-So, before you take off on your next adventure, make sure to equip your drone with a compass. It's the smart choice for smoother flights and better navigation.
+打开：
 
-Fly safe, fly smart with INAV 7.1 and a compass by your side!
+```text
+C:\MounRiver\MounRiver_Studio2\resources\app\resources\win32\components\WCH\Others\SWDTool\default\WCH-LinkUtility.exe
+```
 
-# INAV Community
+设置：
 
-* [INAV Discord Server](https://discord.gg/peg2hhbYwN)
-* [INAV Official on Facebook](https://www.facebook.com/groups/INAVOfficial)
+- Core：`RISC-V`
+- Series：`CH32H41X`
+- Addr：`8000000`
+- 勾选：`Erase All`
+- 勾选：`Program`
+- 勾选：`Verify`
+- 勾选：`Reset and Run`
+- 不要勾选 `Enable MCU Code Read-Protect`
 
-## Downloads
+菜单 `File -> Open Firmware`，选择推荐的 hardfloat `.bin` 文件，然后依次执行：
 
-### INAV Configurator
+1. `Erase`
+2. `Program`
+3. `Verify`
+4. `Reset`
 
-**Get the latest version:** **[Download INAV Configurator](https://github.com/iNavFlight/inav-configurator/releases/latest)** - Available for Windows, macOS, and Linux
+烧录成功后，Windows 设备管理器应出现：
 
-The INAV Configurator is the official desktop application for configuring your INAV flight controller. Choose your platform from the Assets section on the releases page.
+```text
+USB 串行设备 (COM7)
+```
 
-### INAV Firmware
+## INAV Configurator 连接
 
-**Get the latest firmware:** **[Download INAV Firmware](https://github.com/iNavFlight/inav/releases/latest)**
+连接飞控时选择：
 
-Download the latest INAV flight controller firmware. Flash it to your flight controller using the configurator.
+```text
+COM7
+```
 
-## Features
+不要选：
 
-* Runs on the most popular F4, AT32, F7 and H7 flight controllers
-* On Screen Display (OSD) - both character and pixel style
-* DJI OSD integration: all elements, system messages and warnings
-* Outstanding performance out of the box
-* Position Hold, Altitude Hold, Return To Home and Waypoint Missions
-* Excellent support for fixed wing UAVs: airplanes, flying wings
-* Blackbox flight recorder logging
-* Advanced gyro filtering
-* Fully configurable mixer that allows to run any hardware you want: multirotor, fixed wing, rovers, boats and other experimental devices
-* Multiple sensor support: GPS, Pitot tube, sonar, lidar, temperature, ESC with BlHeli_32 telemetry
-* Logic Conditions, Global Functions and Global Variables: you can program INAV with a GUI
-* SmartAudio and IRC Tramp VTX support
-* Telemetry: SmartPort, FPort, MAVlink, LTM, CRSF
-* Multi-color RGB LED Strip support
-* And many more!
+```text
+COM6
+```
 
-For a list of features, changes and some discussion please review consult the releases [page](https://github.com/iNavFlight/inav/releases) and the documentation.
+`COM6` 是 WCH-Link SERIAL，不是飞控 USB CDC。
 
-## Tools
+如果 INAV Configurator 提示“混控没有配置，请到混控界面去设置”，这是配置区还没有完整飞控配置，不代表固件没跑。
 
-### INAV Configurator
+## 已验证的 MSP 返回
 
-Official tool for INAV can be downloaded [here](https://github.com/iNavFlight/inav-configurator/releases). It can be run on Windows, MacOS and Linux machines and standalone application.
+hardfloat 固件烧录后，`COM7` 可正常返回：
 
-### INAV Blackbox Explorer
+```text
+MSP_API_VERSION -> 正常
+MSP_FC_VARIANT  -> INAV
+MSP_STATUS_EX   -> CPU load 约 8%
+```
 
-Tool for Blackbox logs analysis is available [here](https://github.com/iNavFlight/blackbox-log-viewer/releases)
+## 编译 hardfloat 固件
 
-### INAV Blackbox Tools
+构建目录：
 
-Command line tools (`blackbox_decode`, `blackbox_render`) for Blackbox log conversion and analysis [here](https://github.com/iNavFlight/blackbox-tools).
+```text
+C:\Users\30296\Desktop\ch32\inav_ch32h415reu6_port\build_ch32h415_hardfloat_ninja
+```
 
-### Telemetry screen for EdgeTX and OpenTX
+使用 MSYS2 bash 构建：
 
-Users of EdgeTX and OpenTX radios (Taranis, Horus, Jumper, Radiomaster, Nirvana) can use INAV OpenTX Telemetry Widget screen. Software and installation instruction are available here: [https://github.com/iNavFlight/OpenTX-Telemetry-Widget](https://github.com/iNavFlight/OpenTX-Telemetry-Widget)
+```bash
+export PATH="/c/Users/30296/Desktop/CH32飞控/tools/wch-gcc/risc-none-embed-gcc-8.2.0/bin:$PATH"
+cd /c/Users/30296/Desktop/ch32/inav_ch32h415reu6_port
+cmake --build build_ch32h415_hardfloat_ninja --target CH32H415REU6.dual
+```
 
-### OSD layout Copy, Move, or Replace helper tool
+hardfloat 编译参数：
 
-[Easy INAV OSD switcher tool](https://www.mrd-rc.com/tutorials-tools-and-testing/useful-tools/inav-osd-switcher-tool/) allows you to easily switch your OSD layouts around in INAV. Choose the from and to OSD layouts, and the method of transfering the layouts.
+```text
+CH32_RISCV_ARCH=rv32imafcxw
+CH32_RISCV_ABI=ilp32f
+```
 
-## Installation
+生成产物：
 
-See: https://github.com/iNavFlight/inav/blob/master/docs/Installation.md
+```text
+build_ch32h415_hardfloat_ninja\inav_9.0.1_CH32H415REU6_dual.bin
+build_ch32h415_hardfloat_ninja\inav_9.0.1_CH32H415REU6_dual.hex
+```
 
-## Documentation, support and learning resources
-* [INAV 5 on a flying wing full tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkZlulvqsX_vRMfXd5zM7Ha)
-* [INAV on a multirotor drone tutorial](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLkfcKsWobDLtBNIBzwlwRC8)
-* [Fixed Wing Guide](docs/INAV_Fixed_Wing_Setup_Guide.pdf)
-* [Autolaunch Guide](docs/INAV_Autolaunch.pdf)
-* [Modes Guide](docs/INAV_Modes.pdf)
-* [Wing Tuning Masterclass](docs/INAV_Wing_Tuning_Masterclass.pdf)
-* [Official documentation](https://github.com/iNavFlight/inav/tree/master/docs)
-* [Official Wiki](https://github.com/iNavFlight/inav/wiki)
-* [Video series by Paweł Spychalski](https://www.youtube.com/playlist?list=PLOUQ8o2_nCLloACrA6f1_daCjhqY2x0fB)
-* [Target documentation](https://github.com/iNavFlight/inav/tree/master/docs/boards)
+## 关键修改点
 
-## Contributing
+- CH32H415REU6 目标配置
+- UART6 AF 修正为 `GPIO_AF8`
+- USB CDC/MSP 通信可用
+- 调度器避免实时任务饿死串口/MSP
+- `TASK_SERIAL` 优先级提高
+- 默认 gyro/PID looptime 放宽，避免初始过载
+- hardfloat 编译启用 `rv32imafcxw / ilp32f`
+- 确认不再走 `__mulsf3 / __addsf3 / __divsf3` 软浮点热路径
 
-Contributions are welcome and encouraged.  You can contribute in many ways:
+## 常见问题
 
-* Documentation updates and corrections.
-* How-To guides - received help?  help others!
-* Bug fixes.
-* New features.
-* Telling us your ideas and suggestions.
-* Buying your hardware from this [link](https://inavflight.com/shop/u/bg/)
+### 看不到 COM7
 
-A good place to start is the Discord channel, Telegram channel or Facebook group. Drop in, say hi.
+先检查是否只看到：
 
-Github issue tracker is a good place to search for existing issues or report a new bug/feature request:
+```text
+COM6 = WCH-Link SERIAL
+```
 
-https://github.com/iNavFlight/inav/issues
+如果只有 COM6，通常是固件没有正确烧进去，或者烧录时 WCH-LinkUtility 选错了芯片系列。必须选择：
 
-https://github.com/iNavFlight/inav-configurator/issues
+```text
+CH32H41X
+```
 
-Before creating new issues please check to see if there is an existing one, search first otherwise you waste peoples time when they could be coding instead!
+不要选择 `CH32V30X`。
 
-## Developers
+### INAV 里保存默认设置等很久
 
-Please refer to the development section in the [docs/development](https://github.com/iNavFlight/inav/tree/master/docs/development) folder.
+当前配置保存走片上 Flash 模拟 EEPROM。第一次保存、擦写配置区、或者 Configurator 等待重启时可能会明显慢一些。
 
-Nightly builds are available for testing on the following links:
+如果长时间不返回：
 
-https://github.com/iNavFlight/inav-nightly/releases
+1. 等 30 秒
+2. 关闭 INAV Configurator 连接
+3. 拔插飞控 Type-C
+4. 重新选择 `COM7` 连接
 
-https://github.com/iNavFlight/inav-configurator-nightly/releases
+后续需要继续优化配置保存和重启流程。
 
-## INAV Releases
-https://github.com/iNavFlight/inav/releases
+### CPU 负载很高
 
+旧固件是软浮点编译，INAV 的 PID/filter 浮点计算会跑进 `__mulsf3` 等软件浮点函数，所以 CPU load 会异常高。
 
+当前 hardfloat 固件已解决这个问题，MSP 读取 CPU load 约 `8%`。
+
+## 当前建议
+
+下一步不要直接装桨试飞。建议顺序：
+
+1. INAV Configurator 连接 `COM7`
+2. 设置 Mixer
+3. 检查陀螺仪方向
+4. 校准加速度计
+5. 检查电机输出和电机顺序
+6. 检查接收机输入
+7. 检查解锁条件
+8. 最后再无桨电机测试

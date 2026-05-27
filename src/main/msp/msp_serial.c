@@ -424,10 +424,15 @@ static mspPostProcessFnPtr mspSerialProcessReceivedCommand(mspPort_t *msp, mspPr
 
 static void mspEvaluateNonMspData(mspPort_t * mspPort, uint8_t receivedChar)
 {
+#ifndef DISABLE_CLI
     if (receivedChar == '#') {
         mspPort->pendingRequest = MSP_PENDING_CLI;
         return;
     }
+#else
+    UNUSED(mspPort);
+    UNUSED(receivedChar);
+#endif
 }
 
 static void mspProcessPendingRequest(mspPort_t * mspPort)

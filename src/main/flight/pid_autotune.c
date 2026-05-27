@@ -57,6 +57,8 @@
 #define AUTOTUNE_FIXED_WING_SAMPLES             1000    // Use average over the last 20 seconds of hard maneuvers
 #define AUTOTUNE_FIXED_WING_MIN_SAMPLES         250     // Start updating tune after 5 seconds of hard maneuvers
 
+#if defined(USE_AUTOTUNE_FIXED_WING) || defined(USE_AUTOTUNE_MULTIROTOR)
+
 PG_REGISTER_WITH_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig, PG_PID_AUTOTUNE_CONFIG, 2);
 
 PG_RESET_TEMPLATE(pidAutotuneConfig_t, pidAutotuneConfig,
@@ -83,8 +85,6 @@ typedef struct {
 } pidAutotuneData_t;
 
 #define AUTOTUNE_SAVE_PERIOD        5000        // Save interval is 5 seconds - when we turn off autotune we'll restore values from previous update at most 5 sec ago
-
-#if defined(USE_AUTOTUNE_FIXED_WING) || defined(USE_AUTOTUNE_MULTIROTOR)
 
 static pidAutotuneData_t    tuneCurrent[XYZ_AXIS_COUNT];
 static pidAutotuneData_t    tuneSaved[XYZ_AXIS_COUNT];

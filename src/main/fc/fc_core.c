@@ -177,7 +177,7 @@ bool areSensorsCalibrating(void)
     return false;
 }
 
-int16_t FAST_CODE getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
+int16_t getAxisRcCommand(int16_t rawData, int16_t rate, int16_t deadband)
 {
     int16_t stickDeflection = 0;
 
@@ -390,25 +390,10 @@ static void processPilotAndFailSafeActions(float dT)
         failsafeApplyControlInput();
     }
     else {
-        // Compute ROLL PITCH and YAW command.
-        // Only recompute when the RX task has delivered new data (~50 Hz).
-        {
-            static int16_t cachedCmd[3] = {0, 0, 0};
-            if (isRXDataNew) {
-                cachedCmd[ROLL]  = getAxisRcCommand(rxGetChannelValue(ROLL),
-                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
-                    rcControlsConfig()->deadband);
-                cachedCmd[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH),
-                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8,
-                    rcControlsConfig()->deadband);
-                cachedCmd[YAW]   = -getAxisRcCommand(rxGetChannelValue(YAW),
-                    FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8,
-                    rcControlsConfig()->yaw_deadband);
-            }
-            rcCommand[ROLL]  = cachedCmd[ROLL];
-            rcCommand[PITCH] = cachedCmd[PITCH];
-            rcCommand[YAW]   = cachedCmd[YAW];
-        }
+        // Compute ROLL PITCH and YAW command
+        rcCommand[ROLL] = getAxisRcCommand(rxGetChannelValue(ROLL), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[PITCH] = getAxisRcCommand(rxGetChannelValue(PITCH), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcExpo8 : currentControlProfile->stabilized.rcExpo8, rcControlsConfig()->deadband);
+        rcCommand[YAW] = -getAxisRcCommand(rxGetChannelValue(YAW), FLIGHT_MODE(MANUAL_MODE) ? currentControlProfile->manual.rcYawExpo8 : currentControlProfile->stabilized.rcYawExpo8, rcControlsConfig()->yaw_deadband);
 
         // Apply manual control rates
         if (FLIGHT_MODE(MANUAL_MODE)) {
@@ -416,6 +401,7 @@ static void processPilotAndFailSafeActions(float dT)
             rcCommand[PITCH] = rcCommand[PITCH] * currentControlProfile->manual.rates[FD_PITCH] / 100L;
             rcCommand[YAW] = rcCommand[YAW] * currentControlProfile->manual.rates[FD_YAW] / 100L;
         } else {
+#ifdef USE_RATE_DYNAMICS
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 0, rcCommand[ROLL]);
             rcCommand[ROLL] = applyRateDynamics(rcCommand[ROLL], ROLL, dT);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 1, rcCommand[ROLL]);
@@ -427,16 +413,14 @@ static void processPilotAndFailSafeActions(float dT)
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 4, rcCommand[YAW]);
             rcCommand[YAW] = applyRateDynamics(rcCommand[YAW], YAW, dT);
             DEBUG_SET(DEBUG_RATE_DYNAMICS, 5, rcCommand[YAW]);
-
+#endif
         }
 
         //Compute THROTTLE command
         rcCommand[THROTTLE] = throttleStickMixedValue();
 
-        // Signal updated rcCommand values to Failsafe system when new RC data arrived
-        if (isRXDataNew) {
-            failsafeUpdateRcCommandValues();
-        }
+        // Signal updated rcCommand values to Failsafe system
+        failsafeUpdateRcCommandValues();
 
         if (FLIGHT_MODE(HEADFREE_MODE)) {
             const float radDiff = degreesToRadians(DECIDEGREES_TO_DEGREES(attitude.values.yaw) - headFreeModeHold);
@@ -963,12 +947,7 @@ void taskMainPidLoop(timeUs_t currentTimeUs)
 
     processPilotAndFailSafeActions(dT);
 
-    // Check battery, GPS signal, arming status etc @ 200 Hz
-    static uint8_t armingStatusDivider = 0;
-    if (++armingStatusDivider >= 10) {
-        armingStatusDivider = 0;
-        updateArmingStatus();
-    }
+    updateArmingStatus();
 
     if (rxConfig()->rcFilterFrequency) {
         rcInterpolationApply(isRXDataNew, currentTimeUs);

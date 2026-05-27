@@ -92,7 +92,11 @@ endfunction()
 
 function(setup_firmware_target exe name)
     setup_executable(${exe} ${name})
-    enable_settings(${exe} ${name})
+    set(settings_cxx)
+    if(NOT host STREQUAL TOOLCHAIN)
+        get_filename_component(settings_cxx "${CMAKE_CXX_COMPILER}" NAME)
+    endif()
+    enable_settings(${exe} ${name} SETTINGS_CXX ${settings_cxx})
     get_property(targets GLOBAL PROPERTY VALID_TARGETS)
     list(APPEND targets ${name})
     set_property(GLOBAL PROPERTY VALID_TARGETS "${targets}")
@@ -108,10 +112,10 @@ function(setup_firmware_target exe name)
 endfunction()
 
 function(exclude_from_all target)
-    set_target_properties(${target} PROPERTIES
+    set_property(TARGET ${target} PROPERTY
         TARGET_MESSAGES OFF
-        EXCLUDE_FROM_ALL ON
-        EXCLUDE_FROM_DEFAULT_BUILD ON)
+        EXCLUDE_FROM_ALL 1
+        EXCLUDE_FROM_DEFAULT_BUILD 1)
 endfunction()
 
 function(collect_targets)

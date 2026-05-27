@@ -13,9 +13,12 @@ function(gcc_get_version var)
         set(${args_PROGRAM_NAME} ${prog} PARENT_SCOPE)
     endif()
 
-    find_program(gcc ${prog})
+    string(REPLACE "-" "_" gcc_cache_name "GCC_${prog}")
+    find_program(${gcc_cache_name} ${prog})
+    set(gcc ${${gcc_cache_name}})
     if (NOT gcc)
         set(${var} OFF PARENT_SCOPE)
+        return()
     endif()
 
     if(args_PROGRAM_PATH)

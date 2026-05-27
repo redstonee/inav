@@ -51,6 +51,23 @@ timeMs_t millis(void)
 
 static volatile int sysTickPending = 0;
 
+#if defined(CH32H417)
+#define CH32_SYSTICK1_FLAG (1U << 1)
+
+void SysTick1_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void SysTick1_Handler(void)
+{
+    if (SysTick0->ISR & CH32_SYSTICK1_FLAG) {
+        SysTick0->ISR &= ~CH32_SYSTICK1_FLAG;
+    }
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        sysTickUptime++;
+        sysTickValStamp = SysTick1->CNT;
+        sysTickPending = 0;
+    }
+}
+#else
 void SysTick_Handler(void)
 {
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
@@ -64,11 +81,22 @@ void SysTick_Handler(void)
     HAL_IncTick();
 #endif
 }
+#endif
 
 uint32_t ticks(void)
 {
 #ifdef UNIT_TEST
     return 0;
+#elif defined(CH32H417)
+    uint32_t ms, pending, cycle_cnt;
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        cycle_cnt = SysTick1->CNT;
+        pending = (SysTick0->ISR & CH32_SYSTICK1_FLAG) ? 1 : 0;
+        ms = sysTickUptime;
+    }
+
+    return ((ms + pending) * (usTicks * 1000U)) + cycle_cnt;
 #else
     return DWT->CYCCNT;
 #endif
@@ -84,6 +112,18 @@ void delayNanos(timeDelta_t ns)
 // Return system uptime in microseconds
 timeUs_t microsISR(void)
 {
+#if defined(CH32H417)
+    register uint32_t ms, pending, cycle_cnt;
+
+    ATOMIC_BLOCK(NVIC_PRIO_MAX) {
+        cycle_cnt = SysTick1->CNT;
+        pending = (SysTick0->ISR & CH32_SYSTICK1_FLAG) ? 1 : 0;
+        ms = sysTickUptime;
+    }
+
+    const uint32_t partial = cycle_cnt / usTicks;
+    return ((timeUs_t)(ms + pending) * 1000LL) + ((timeUs_t)partial);
+#else
     register uint32_t ms, pending, cycle_cnt;
 
     ATOMIC_BLOCK(NVIC_PRIO_MAX) {
@@ -109,10 +149,14 @@ timeUs_t microsISR(void)
     // XXX: Be careful to not trigger 64 bit division
     const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
     return ((timeUs_t)(ms + pending) * 1000LL) + ((timeUs_t)partial);
+#endif
 }
 
 timeUs_t micros(void)
 {
+#if defined(CH32H417)
+    return microsISR();
+#else
     register uint32_t ms, cycle_cnt;
 
     // Call microsISR() in interrupt and elevated (non-zero) BASEPRI context
@@ -131,6 +175,7 @@ timeUs_t micros(void)
     // XXX: Be careful to not trigger 64 bit division
     const uint32_t partial = (usTicks * 1000U - cycle_cnt) / usTicks;
     return ((timeUs_t)ms * 1000LL) + ((timeUs_t)partial);
+#endif
 }
 
 #if 1

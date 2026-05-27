@@ -15,6 +15,9 @@
  * along with Cleanflight.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "platform.h"
+
+#ifdef USE_OSD
 
 #include "config/config_reset.h"
 #include "config/parameter_group.h"
@@ -250,3 +253,5 @@ void customElementDrawElement(char *buff, uint8_t customElementIndex){
 uint8_t customElementLength(uint8_t customElementIndex){
     return prevLength[customElementIndex] ? prevLength[customElementIndex] : 1;
 }
+
+#endif

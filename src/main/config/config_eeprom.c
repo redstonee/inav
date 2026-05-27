@@ -33,7 +33,6 @@
 
 #include "drivers/system.h"
 #include "drivers/flash.h"
-#include "drivers/pwm_output.h"
 
 #include "fc/config.h"
 
@@ -42,6 +41,11 @@
 #endif
 
 static uint16_t eepromConfigSize;
+
+static uint16_t readU16LE(const uint8_t *p)
+{
+    return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
+}
 
 typedef enum {
     CR_CLASSICATION_SYSTEM   = 0,
@@ -174,7 +178,7 @@ bool isEEPROMContentValid(void)
     const configFooter_t *footer = (const configFooter_t *)p;
     crc = crc16_ccitt_update(crc, footer, sizeof(*footer));
     p += sizeof(*footer);
-    const uint16_t checkSum = *(uint16_t *)p;
+    const uint16_t checkSum = readU16LE(p);
     p += sizeof(checkSum);
     eepromConfigSize = p - &__config_start;
     return crc == checkSum;
@@ -322,13 +326,6 @@ static bool writeSettingsToEEPROM(void)
 
 void writeConfigToEEPROM(void)
 {
-#if !defined(SITL_BUILD) && defined(USE_DSHOT)
-    // Enable circular DMA so hardware keeps repeating zero-throttle DShot
-    // packets during flash writes (which block the CPU for 20-200ms).
-    // Without this, ESCs lose signal and may spin up or reboot.
-    pwmSetMotorDMACircular(true);
-#endif
-
     bool success = false;
     // write it
     for (int attempt = 0; attempt < 3 && !success; attempt++) {
@@ -340,10 +337,6 @@ void writeConfigToEEPROM(void)
 #endif
         }
     }
-
-#if !defined(SITL_BUILD) && defined(USE_DSHOT)
-    pwmSetMotorDMACircular(false);
-#endif
 
     if (success && isEEPROMContentValid()) {
         return;

@@ -38,12 +38,21 @@ function(enable_settings exe name)
         set(USE_HOST_GCC "-g")
     endif()
     set(output ${dir}/${SETTINGS_GENERATED_H} ${dir}/${SETTINGS_GENERATED_C})
+    set(settings_dependencies
+        ${SETTINGS_GENERATOR}
+        ${SETTINGS_FILE}
+        "${MAIN_SRC_DIR}/target/common.h"
+        "${MAIN_SRC_DIR}/target/common_post.h"
+    )
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/target.h")
+        list(APPEND settings_dependencies "${CMAKE_CURRENT_SOURCE_DIR}/target.h")
+    endif()
     add_custom_command(
         OUTPUT ${output}
         COMMAND
             ${CMAKE_COMMAND} -E env CFLAGS="${cflags}" TARGET=${name} PATH="$ENV{PATH}" SETTINGS_CXX=${args_SETTINGS_CXX}
             ${RUBY_EXECUTABLE} ${SETTINGS_GENERATOR} ${MAIN_DIR} ${SETTINGS_FILE} -o "${dir}" ${USE_HOST_GCC} 
-        DEPENDS ${SETTINGS_GENERATOR} ${SETTINGS_FILE}
+        DEPENDS ${settings_dependencies}
     )
     set(${args_OUTPUTS} ${output} PARENT_SCOPE)
 endfunction()

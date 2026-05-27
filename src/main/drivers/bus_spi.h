@@ -37,6 +37,11 @@
 #define SPI_IO_AF_SCK_CFG       IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_DOWN)
 #define SPI_IO_AF_MISO_CFG      IO_CONFIG(GPIO_MODE_MUX,  GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_UP)
 #define SPI_IO_CS_CFG           IO_CONFIG(GPIO_MODE_OUTPUT, GPIO_DRIVE_STRENGTH_STRONGER, GPIO_OUTPUT_PUSH_PULL, GPIO_PULL_NONE)
+#elif defined(CH32H417)
+#define SPI_IO_AF_CFG           IOCFG_AF_PP
+#define SPI_IO_AF_SCK_CFG       IOCFG_AF_PP
+#define SPI_IO_AF_MISO_CFG      IOCFG_IPU
+#define SPI_IO_CS_CFG           IOCFG_OUT_PP
 #endif
 
 /*
@@ -82,7 +87,7 @@ typedef struct SPIDevice_s {
     ioTag_t mosi;
     ioTag_t miso;
     rccPeriphTag_t rcc;
-#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x)
+#if defined(STM32F7) || defined(STM32H7) || defined(AT32F43x) || defined(CH32H417)
     uint8_t sckAF;
     uint8_t misoAF;
     uint8_t mosiAF;

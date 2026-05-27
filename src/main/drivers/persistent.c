@@ -31,7 +31,26 @@
 
 #define PERSISTENT_OBJECT_MAGIC_VALUE (('i' << 24)|('N' << 16)|('a' << 8)|('v' << 0))
 
-#if defined(AT32F43x)
+#if defined(CH32H417)
+
+    static uint32_t persistentObjectRam[PERSISTENT_OBJECT_COUNT];
+
+    uint32_t persistentObjectRead(persistentObjectId_e id)
+    {
+        return persistentObjectRam[id];
+    }
+
+    void persistentObjectWrite(persistentObjectId_e id, uint32_t value)
+    {
+        persistentObjectRam[id] = value;
+    }
+
+    void persistentObjectRTCEnable(void)
+    {
+        // TODO: map this to CH32H415 backup registers once RTC/BKP retention is validated.
+    }
+
+#elif defined(AT32F43x)
 
     uint32_t persistentObjectRead(persistentObjectId_e id)
     {
@@ -134,6 +153,8 @@ void persistentObjectInit(void)
 
 #if defined(AT32F43x)
     wasSoftReset = crm_flag_get(CRM_SW_RESET_FLAG);
+#elif defined(CH32H417)
+    wasSoftReset = cachedRccCsrValue & RCC_SFTRSTF;
 #elif defined(STM32H7)
     wasSoftReset = RCC->RSR & RCC_RSR_SFTRSTF;
 #else

@@ -206,6 +206,7 @@ static serialPort_t *mspFindPassthroughSerialPort(void)
     return portUsage ? portUsage->serialPort : NULL;
 }
 
+#ifdef USE_SERIAL_PASSTHROUGH
 static void mspSerialPassthroughFn(serialPort_t *serialPort)
 {
     serialPort_t *passthroughPort = mspFindPassthroughSerialPort();
@@ -213,6 +214,7 @@ static void mspSerialPassthroughFn(serialPort_t *serialPort)
         serialPassthrough(passthroughPort, serialPort, NULL, NULL);
     }
 }
+#endif
 
 static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessFnPtr *mspPostProcessFn)
 {
@@ -231,6 +233,7 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
     switch (mspPassthroughMode) {
     case MSP_PASSTHROUGH_SERIAL_ID:
     case MSP_PASSTHROUGH_SERIAL_FUNCTION_ID:
+#ifdef USE_SERIAL_PASSTHROUGH
          if (mspFindPassthroughSerialPort()) {
              if (mspPostProcessFn) {
                  *mspPostProcessFn = mspSerialPassthroughFn;
@@ -239,6 +242,9 @@ static void mspFcSetPassthroughCommand(sbuf_t *dst, sbuf_t *src, mspPostProcessF
          } else {
              sbufWriteU8(dst, 0);
          }
+#else
+         sbufWriteU8(dst, 0);
+#endif
          break;
 #ifdef USE_SERIAL_4WAY_BLHELI_INTERFACE
     case MSP_PASSTHROUGH_ESC_4WAY:
@@ -742,12 +748,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, getRSSI());
         break;
 
-    case MSP2_INAV_GET_LINK_STATS:
-        sbufWriteU8(dst, (uint8_t)-rxLinkStatistics.uplinkRSSI);
-        sbufWriteU8(dst, rxLinkStatistics.uplinkLQ);
-        sbufWriteU8(dst, (uint8_t)rxLinkStatistics.uplinkSNR);
-        break;
-
     case MSP_LOOP_TIME:
         sbufWriteU16(dst, gyroConfig()->looptime);
         break;
@@ -1015,7 +1015,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, gpsSol.hdop);
         sbufWriteU16(dst, gpsSol.eph);
         sbufWriteU16(dst, gpsSol.epv);
-        sbufWriteU8(dst, gpsState.hwVersion);
         break;
 #endif
     case MSP2_ADSB_VEHICLE_LIST:
@@ -1491,7 +1490,11 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
         sbufWriteU16(dst, positionEstimationConfig()->w_z_gps_v * 100);  // 2   inav_w_z_gps_v  float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_p * 100); // 2   inav_w_xy_gps_p float as value * 100
         sbufWriteU16(dst, positionEstimationConfig()->w_xy_gps_v * 100); // 2   inav_w_xy_gps_v float as value * 100
+#ifdef USE_GPS
         sbufWriteU8(dst, gpsConfigMutable()->gpsMinSats);                // 1
+#else
+        sbufWriteU8(dst, 5);                                             // 1
+#endif
         sbufWriteU8(dst, 1);    // 1   inav_use_gps_velned ON/OFF
 
         break;
@@ -1557,12 +1560,6 @@ static bool mspFcProcessOutCommand(uint16_t cmdMSP, sbuf_t *dst, mspPostProcessF
                 sbufWriteU8(dst, vtxDevice->capability.bandCount);
                 sbufWriteU8(dst, vtxDevice->capability.channelCount);
                 sbufWriteU8(dst, vtxDevice->capability.powerCount);
-
-                uint8_t minPowerIndex = 1;
-                if (deviceType == VTXDEV_MSP) {
-                    minPowerIndex = 0;
-                }
-                sbufWriteU8(dst, minPowerIndex);
             }
             else {
                 sbufWriteU8(dst, VTXDEV_UNKNOWN); // no VTX configured
@@ -2234,12 +2231,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
                 batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
+#ifdef USE_OSD
             } else if (currentCapacityUnit != batteryMetersConfig()->capacity_unit) {
                 if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
                     osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
                 } else {
                     osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
                 }
+#endif
             }
         } else
             return MSP_RESULT_ERROR;
@@ -2280,12 +2279,14 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             if ((batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MAH) && (batteryMetersConfig()->capacity_unit != BAT_CAPACITY_UNIT_MWH)) {
                 batteryMetersConfigMutable()->capacity_unit = BAT_CAPACITY_UNIT_MAH;
                 return MSP_RESULT_ERROR;
+#ifdef USE_OSD
             } else if (currentCapacityUnit != batteryMetersConfig()->capacity_unit) {
                 if (batteryMetersConfig()->capacity_unit == BAT_CAPACITY_UNIT_MAH) {
                     osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_MAH;
                 } else {
                     osdConfigMutable()->stats_energy_unit = OSD_STATS_ENERGY_UNIT_WH;
                 }
+#endif
             }
         } else
             return MSP_RESULT_ERROR;
@@ -2418,111 +2419,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         }
         break;
 #endif
-
-    case MSP2_INAV_SET_AUX_RC:
-        {
-            // Max valid payload: 1 def byte + 24 channels × 2 bytes (16-bit) = 49 bytes
-            if (dataSize < 2 || dataSize > 49) {
-                return MSP_RESULT_ERROR;
-            }
-
-            const uint8_t defByte = sbufReadU8(src);
-            const uint8_t startChannel = defByte >> 3;          // Bits 7-3: start channel index (0-31)
-            const uint8_t resolutionMode = defByte & 0x07;      // Bits 2-0: resolution
-
-            // Safety: CH1-CH12 (index 0-11) are protected
-            if (startChannel < 12) {
-                return MSP_RESULT_ERROR;
-            }
-
-            const uint8_t dataBytes = dataSize - 1;
-            uint8_t channelCount;
-            uint8_t bitsPerChannel;
-
-            switch (resolutionMode) {
-                case 0: // 2-bit
-                    bitsPerChannel = 2;
-                    channelCount = dataBytes * 4;
-                    break;
-                case 1: // 4-bit
-                    bitsPerChannel = 4;
-                    channelCount = dataBytes * 2;
-                    break;
-                case 2: // 8-bit
-                    bitsPerChannel = 8;
-                    channelCount = dataBytes;
-                    break;
-                case 3: // 16-bit
-                    bitsPerChannel = 16;
-                    if (dataBytes % 2 != 0) {
-                        return MSP_RESULT_ERROR;
-                    }
-                    channelCount = dataBytes / 2;
-                    break;
-                default:
-                    return MSP_RESULT_ERROR;
-            }
-
-            if (channelCount == 0 || startChannel + channelCount > 32) {
-                return MSP_RESULT_ERROR;
-            }
-
-            // Decode and apply channel values
-            if (bitsPerChannel >= 8) {
-                // Byte-aligned modes: 8-bit and 16-bit
-                for (int i = 0; i < channelCount; i++) {
-                    uint16_t rawValue;
-                    if (bitsPerChannel == 16) {
-                        rawValue = sbufReadU16(src);
-                    } else {
-                        rawValue = sbufReadU8(src);
-                    }
-
-                    if (rawValue == 0) {
-                        continue; // skip: no update
-                    }
-
-                    uint16_t pwmValue;
-                    if (bitsPerChannel == 16) {
-                        pwmValue = constrain(rawValue, 750, 2250);
-                    } else {
-                        // 8-bit: 1-255 → 1000-2000
-                        pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 254;
-                    }
-
-                    rxMspAuxOverlaySet(startChannel + i, pwmValue);
-                }
-            } else {
-                // Sub-byte modes: 2-bit and 4-bit
-                const uint8_t mask = (1 << bitsPerChannel) - 1;
-                const uint8_t channelsPerByte = 8 / bitsPerChannel;
-                int ch = 0;
-
-                for (int byteIdx = 0; byteIdx < (int)dataBytes && ch < channelCount; byteIdx++) {
-                    const uint8_t dataByte = sbufReadU8(src);
-                    for (int sub = channelsPerByte - 1; sub >= 0 && ch < channelCount; sub--, ch++) {
-                        const uint8_t rawValue = (dataByte >> (sub * bitsPerChannel)) & mask;
-
-                        if (rawValue == 0) {
-                            continue; // skip: no update
-                        }
-
-                        uint16_t pwmValue;
-                        if (bitsPerChannel == 2) {
-                            // 2-bit: 1→1000, 2→1500, 3→2000
-                            pwmValue = 1000 + (rawValue - 1) * 500;
-                        } else {
-                            // 4-bit: 1-15 → 1000-2000
-                            pwmValue = 1000 + ((uint32_t)(rawValue - 1) * 1000) / 14;
-                        }
-
-                        rxMspAuxOverlaySet(startChannel + ch, pwmValue);
-                    }
-                }
-            }
-        }
-        break;
-
     case MSP2_COMMON_SET_MOTOR_MIXER:
         sbufReadU8Safe(&tmp_u8, src);
         if ((dataSize == 9) && (tmp_u8 < MAX_SUPPORTED_MOTORS)) {
@@ -2804,7 +2700,11 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             positionEstimationConfigMutable()->w_z_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
             positionEstimationConfigMutable()->w_xy_gps_p = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
             positionEstimationConfigMutable()->w_xy_gps_v = constrainf(sbufReadU16(src) / 100.0f, 0.0f, 10.0f);
+#ifdef USE_GPS
             gpsConfigMutable()->gpsMinSats = constrain(sbufReadU8(src), 5, 10);
+#else
+            sbufReadU8(src);
+#endif
             sbufReadU8(src); // was positionEstimationConfigMutable()->use_gps_velned
         } else
             return MSP_RESULT_ERROR;
@@ -3652,11 +3552,15 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
         break;
 #endif
     case MSP2_INAV_GPS_UBLOX_COMMAND:
+#if defined(USE_GPS) && defined(USE_GPS_PROTO_UBLOX)
         if(dataSize < 8 || !isGpsUblox()) {
             return MSP_RESULT_ERROR;
         }
 
         gpsUbloxSendCommand(src->ptr, dataSize, 0);
+#else
+        return MSP_RESULT_ERROR;
+#endif
         break;
 
 #ifdef USE_GEOZONE
@@ -3794,28 +3698,6 @@ static mspResult_e mspFcProcessInCommand(uint16_t cmdMSP, sbuf_t *src)
             return MSP_RESULT_ERROR;
         }
         break;
-
-    case MSP2_INAV_SET_CRUISE_HEADING:
-        // Set heading while Cruise / Course Hold is active.
-        // Payload: I32  heading_centidegrees  (0–35999)
-        if (dataSize == 4) {
-            int32_t headingCd;
-            if (sbufReadI32Safe(&headingCd, src) && navSetCruiseHeading(headingCd)) {
-                break;
-            }
-        }
-        return MSP_RESULT_ERROR;
-
-    case MSP2_INAV_SET_WP_INDEX:
-        // Jump to waypoint N during an active WP mission.
-        // Payload: U8  wp_index  (0-based, relative to mission start waypoint)
-        if (dataSize == 1) {
-            uint8_t wpIndex;
-            if (sbufReadU8Safe(&wpIndex, src) && navSetActiveWaypointIndex(wpIndex)) {
-                break;
-            }
-        }
-        return MSP_RESULT_ERROR;
 
     default:
         return MSP_RESULT_ERROR;
@@ -4619,7 +4501,6 @@ mspResult_e mspFcProcessCommand(mspPacket_t *cmd, mspPacket_t *reply, mspPostPro
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
     const uint16_t cmdMSP = cmd->cmd;
-
     // initialize reply by default
     reply->cmd = cmd->cmd;
 
