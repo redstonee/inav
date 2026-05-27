@@ -70,18 +70,21 @@ typedef enum
 } FunctionalState;
 #define IS_FUNCTIONAL_STATE(STATE) (((STATE) == DISABLE) || ((STATE) == ENABLE))
 
+#elif defined(CH32H417)
+#include "ch32h417.h"
+#include "system_ch32h417.h"
+
+#define CH32_IRQ_HANDLER_ATTR __attribute__((interrupt("WCH-Interrupt-fast")))
+
+// CH32H417/H416/H415 chip ID register. This is not a full unique ID.
+#define U_ID_0 (*(uint32_t*)0x1FFFF704)
+#define U_ID_1 (*(uint32_t*)0x1FFFF708)
+#define U_ID_2 (*(uint32_t*)0x1FFFF70C)
+
 #elif defined(STM32F4)
 #include "stm32f4xx.h"
 
 // Chip Unique ID on F405
-#define U_ID_0 (*(uint32_t*)0x1fff7a10)
-#define U_ID_1 (*(uint32_t*)0x1fff7a14)
-#define U_ID_2 (*(uint32_t*)0x1fff7a18)
-
-#elif defined(CH32H4)
-#include "ch32h417_conf.h"
-
-// Chip Unique ID on CH32H417
 #define U_ID_0 (*(uint32_t*)0x1fff7a10)
 #define U_ID_1 (*(uint32_t*)0x1fff7a14)
 #define U_ID_2 (*(uint32_t*)0x1fff7a18)

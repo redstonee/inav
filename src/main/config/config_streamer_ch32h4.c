@@ -24,20 +24,7 @@
 #if defined(CH32H4) && !defined(CONFIG_IN_RAM) && \
     !defined(CONFIG_IN_EXTERNAL_FLASH)
 
-/*
-Sector 0    0x08000000 - 0x08003FFF 16 Kbytes
-Sector 1    0x08004000 - 0x08007FFF 16 Kbytes
-Sector 2    0x08008000 - 0x0800BFFF 16 Kbytes
-Sector 3    0x0800C000 - 0x0800FFFF 16 Kbytes
-Sector 4    0x08010000 - 0x0801FFFF 64 Kbytes
-Sector 5    0x08020000 - 0x0803FFFF 128 Kbytes
-Sector 6    0x08040000 - 0x0805FFFF 128 Kbytes
-Sector 7    0x08060000 - 0x0807FFFF 128 Kbytes
-Sector 8    0x08080000 - 0x0809FFFF 128 Kbytes
-Sector 9    0x080A0000 - 0x080BFFFF 128 Kbytes
-Sector 10   0x080C0000 - 0x080DFFFF 128 Kbytes
-Sector 11   0x080E0000 - 0x080FFFFF 128 Kbytes
-*/
+#define FLASH_BASE_ADDR       0x08000000U
 #define FLASH_PAGE_SIZE ((uint32_t)8192)
 
 void config_streamer_impl_unlock(void)
@@ -55,14 +42,16 @@ int config_streamer_impl_write_word(config_streamer_t* c,
         return c->err;
     }
 
+    uint32_t addr= FLASH_BASE_ADDR + c->address;
+
     if (c->address % FLASH_PAGE_SIZE == 0) {
-        const FLASH_Status status = FLASH_ErasePage(c->address);
+        const FLASH_Status status = FLASH_ErasePage(addr);
         if (status != FLASH_COMPLETE) {
             return -1;
         }
     }
 
-    const FLASH_Status status = FLASH_ProgramWord(c->address, *buffer);
+    const FLASH_Status status = FLASH_ProgramWord(addr, *buffer);
     if (status != FLASH_COMPLETE) {
         return -2;
     }

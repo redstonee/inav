@@ -17,44 +17,36 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #if defined(UNIT_TEST) || defined(SITL_BUILD)
 static inline void __set_BASEPRI(uint32_t basePri) {(void)basePri;}
 static inline void __set_BASEPRI_MAX(uint32_t basePri) {(void)basePri;}
-#elif defined(__riscv)
-#define __NVIC_PRIO_BITS 4
-/*
- * RISC-V doesn't have an ARM-like BASEPRI priority mask.  Provide
- * simple enable/disable interrupt helpers using the MSTATUS MIE bit.
- *
- * We map the minimal BASEPRI API used by ATOMIC_BLOCK to:
- *  - __get_BASEPRI(): returns 0 if interrupts were enabled, 1 if disabled
- *  - __set_BASEPRI(val): if val!=0 disable interrupts, else enable
- *  - __set_BASEPRI_MAX(...): disable interrupts (ignore priority arg)
- */
-#define __RISCV_MSTATUS_MIE (1UL << 3)
-static inline uint8_t __get_BASEPRI(void)
+#endif // UNIT_TEST
+
+#if defined(CH32H4)
+#define CH32_IRQ_ENABLE_BITS 0x88U
+
+static inline uint32_t __get_CH32_IRQ_STATE(void)
 {
-    unsigned long mstatus;
-    asm volatile("csrr %0, mstatus" : "=r" (mstatus) :: "memory");
-    return (mstatus & __RISCV_MSTATUS_MIE) ? 0 : 1;
+    uint32_t value;
+    __asm volatile ("csrr %0, 0x800" : "=r" (value));
+    return value & CH32_IRQ_ENABLE_BITS;
 }
-static inline void __set_BASEPRI(uint32_t basePri)
+
+static inline void __irqRestoreMem(uint32_t *val)
 {
-    if (basePri) {
-        asm volatile("csrc mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
-    } else {
-        asm volatile("csrs mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
+    if ((*val & CH32_IRQ_ENABLE_BITS) != 0) {
+        __enable_irq();
     }
 }
-static inline void __set_BASEPRI_MAX(uint32_t basePri)
-{
-    (void)basePri;
-    asm volatile("csrc mstatus, %0" :: "r"(__RISCV_MSTATUS_MIE) : "memory");
-}
-#endif // UNIT_TEST / __riscv
 
+static inline uint32_t __irqDisableMemRetVal(uint8_t prio)
+{
+    (void)prio;
+    const uint32_t irqState = __get_CH32_IRQ_STATE();
+    __disable_irq();
+    return irqState;
+}
+#else
 // cleanup BASEPRI restore function, with global memory barrier
 static inline void __basepriRestoreMem(uint8_t *val)
 {
@@ -67,6 +59,7 @@ static inline uint8_t __basepriSetMemRetVal(uint8_t prio)
     __set_BASEPRI_MAX(prio);
     return 1;
 }
+#endif
 
 // The CMSIS provides the function __set_BASEPRI(priority) for changing the value of the BASEPRI register.
 // The function uses the hardware convention for the ‘priority’ argument, which means that the priority must
@@ -79,6 +72,9 @@ static inline uint8_t __basepriSetMemRetVal(uint8_t prio)
 // Full memory barrier is placed at start and exit of block
 #ifdef UNIT_TEST
 #define ATOMIC_BLOCK(prio) {}
+#elif defined(CH32H4)
+#define ATOMIC_BLOCK(prio) for ( uint32_t __irq_save __attribute__((__cleanup__(__irqRestoreMem))) = __irqDisableMemRetVal(prio), \
+                                     __ToDo = 1; __ToDo ; __ToDo = 0 )
 #else
 #define ATOMIC_BLOCK(prio) for ( uint8_t __basepri_save __attribute__((__cleanup__(__basepriRestoreMem))) = __get_BASEPRI(), \
                                      __ToDo = __basepriSetMemRetVal((prio) << (8U - __NVIC_PRIO_BITS)); __ToDo ; __ToDo = 0 )

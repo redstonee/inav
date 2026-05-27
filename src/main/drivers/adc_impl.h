@@ -20,7 +20,7 @@
 #include "drivers/io_types.h"
 #include "rcc_types.h"
 
-#if defined(STM32F4) || defined(STM32F7) || defined(AT32F43x) 
+#if defined(STM32F4) || defined(STM32F7) || defined(AT32F43x) || defined(CH32H4)
 #define ADC_TAG_MAP_COUNT 16
 #elif defined(STM32H7)
 #define ADC_TAG_MAP_COUNT 28
@@ -66,9 +66,6 @@ typedef struct adcDevice_s {
 #elif defined(AT32F43x) 
     dma_channel_type* DMAy_Channelx;
     uint32_t dmaMuxid; // dmamux request type
-#elif defined(CH32H4)
-    DMA_Channel_TypeDef* DMAy_Channelx;
-    uint8_t dmaMuxid; // dmamux request type
 #else
     DMA_Channel_TypeDef* DMAy_Channelx;
 #endif

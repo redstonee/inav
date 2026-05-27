@@ -74,14 +74,13 @@ const struct ioPortDef_s ioPortDefs[] = {
 
 #elif defined(CH32H4)   
 const struct ioPortDef_s ioPortDefs[] = {
-    { RCC_HB2(IOPA) },
-    { RCC_HB2(IOPB) },
-    { RCC_HB2(IOPC) },
-    { RCC_HB2(IOPD) },
-    { RCC_HB2(IOPE) },
-    { RCC_HB2(IOPF) },
+    { RCC_AHB2(GPIOA) },
+    { RCC_AHB2(GPIOB) },
+    { RCC_AHB2(GPIOC) },
+    { RCC_AHB2(GPIOD) },
+    { RCC_AHB2(GPIOE) },
+    { RCC_AHB2(GPIOF) },
 };
-
 # endif
 
 ioRec_t* IO_Rec(IO_t io)
